@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<SmartDevicesCgiConfig Version="1">
+  <Device ID="0x08013070" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x08012027" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x08012108" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x08011050" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x08011175" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x0801070F" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x0801027F" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x0801108F" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x0801175F" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  <Device ID="0x0801210F" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+  
+  <Device BaseType="0xE1" Name="Lamp">
+    <Image src="/img/lamp.gif" />
+    <StateControl MiB="BulbControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+  </Device>
+
+  <Device ID="0x000000D1" Name="Plug">
+    <Image src="/plug.meters.jpg" />
+    <StateControl MiB="DeviceControl" Var="Mode"/>
+    <LevelFeedback MiB="PlugStatus" Var="S" Label="Power(W)"/>
+  </Device>
+
+  <Groups>
+    <StateControl MiB="DeviceControl" Var="Mode"/>
+    <LevelControl MiB="BulbControl" Var="LumTarget" Max="255"/>
+    <Global Name="All Devices" Address="ff15::f00f"/>
+    <Group Name="Hall" Address="ff15::a00a"/>
+    <Group Name="Lounge" Address="ff15::b00b"/>
+  </Groups>
+  
+  <Scenes>
+    <SceneControl MiB="DeviceControl" Var="SceneId" />
+    <Scene Name="Home" Image="/img/home.png" Address="ff15::f00f" Value="0xA00A" />
+    <Scene Name="Away" Image="/img/away.png" Address="ff15::f00f" Value="0xB00B" />
+    <Scene Name="Movie" Image="/img/tv.png" Address="ff15::f00f" Value="0xC00C" />
+    <Scene Name="Reading" Image="/img/reading.png" Address="ff15::f00f" Value="0xD00D" />
+  </Scenes>
+</SmartDevicesCgiConfig>

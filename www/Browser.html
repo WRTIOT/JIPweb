@@ -1,0 +1,510 @@
+<!DOCTYPE HTML>
+<HTML><HEAD><TITLE>
+JenNet-IP Browser
+</TITLE>
+<link rel="stylesheet" href="/style.css" type="text/css" media="screen" />
+
+<script src="/js/jquery.min.js"></script>
+<script src="/js/jquery.history.js"></script>
+<script src="/js/JIP.js"></script>
+<script type="text/javascript"> 
+
+/****************************************************************************
+ *
+ * MODULE:             JIP Web Apps
+ *
+ * COMPONENT:          JIP network browser web interface
+ *
+ * REVISION:           $Revision: 43426 $
+ *
+ * DATED:              $Date: 2012-06-18 15:24:02 +0100 (Mon, 18 Jun 2012) $
+ *
+ * AUTHOR:             Matt Redfearn
+ *
+ ****************************************************************************
+ *
+ * This software is owned by NXP B.V. and/or its supplier and is protected
+ * under applicable copyright laws. All rights are reserved. We grant You,
+ * and any third parties, a license to use this software solely and
+ * exclusively on NXP products [NXP Microcontrollers such as JN5148, JN5142, JN5139]. 
+ * You, and any third parties must reproduce the copyright and warranty notice
+ * and any other legend of ownership on each copy or partial copy of the 
+ * software.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+
+ * Copyright NXP B.V. 2012. All rights reserved
+ *
+ ***************************************************************************/
+
+function vDisplayVar(Status, element, value)
+{
+    if ((Status.Value == 0) && (typeof(value) == "string"))
+    {
+        element.html(value.replace(/\n/g, "<BR>"));
+    }
+    else
+    {
+        element.html(Status.Description);
+    }
+}
+
+function vDisplayRWVar(Status, element, value)
+{
+    if (Status.Value == 0)
+    {
+        element.value = value;
+    }
+    else
+    {
+        element.value = Status.Description;
+    }
+}
+
+function vVarUpdated(Status, str)
+{
+    $("#result").html(str + ": " + Status.Description);
+}
+
+
+function vDisplayMib(Parameters)
+{
+    $("#mib").empty().append("<H2>Mib \"" + Parameters.mib + "\" on Node: " + Parameters.IPv6Address + "</H2><HR/>");
+    
+    for (var node in Network.Nodes)
+    {
+        if (Network.Nodes[node].IPv6Address == Parameters.IPv6Address)
+        {
+            for (var mib in Network.Nodes[node].MiBs)
+            {
+                if (Network.Nodes[node].MiBs[mib].Name == Parameters.mib)
+                {
+                    for (var varidx in Network.Nodes[node].MiBs[mib].Vars)
+                    {
+                        var vardiv = $(document.createElement("div"));
+                        vardiv.addClass("Var");
+                        vardiv.html("<span>Variable Index " + varidx + "</span><H2>" + Network.Nodes[node].MiBs[mib].Vars[varidx].Name + "</H2>");
+
+                        newnode = $(document.createElement("div"));
+                        vardiv.append(newnode);
+
+                        var leftdiv = $("<div />").css({position:"relative", float:"left"}).appendTo($(newnode));
+                        var rightdiv = $("<div />").css({position:"relative", float:"right"}).appendTo($(newnode));
+
+                        if (Network.Nodes[node].MiBs[mib].Vars[varidx].AccessType == 2)
+                        {
+                            var varInput = $("<input type='text' value='Reading var'/>").appendTo($(leftdiv))[0];
+
+                            var updateAddressInput = $("<div style='display:inline;'>Set via Multicast Address:</div><input type='text' style='margin-right:10px;' value=''/>").appendTo($(rightdiv))[1];
+                            var but = $("<input type='submit' value='Set'>").appendTo($(rightdiv));
+                            $(but).bind('click', 
+                                        {
+                                            updateAddressInput: updateAddressInput, IPv6Address: Network.Nodes[node].IPv6Address, 
+                                            mib: Network.Nodes[node].MiBs[mib].Name,
+                                            variable: Network.Nodes[node].MiBs[mib].Vars[varidx].Name,
+                                            varInput: varInput
+                                        }, 
+                                        function(event) { 
+                                            if (event.data.updateAddressInput.value)
+                                            {
+                                                var addr = event.data.updateAddressInput.value;
+                                            }
+                                            else
+                                            {
+                                                var addr = event.data.IPv6Address;
+                                            }
+                                            
+                                            var str = "Update " + addr + ", Mib " + event.data.mib + ", Var " + event.data.variable + " to " + event.data.varInput.value;
+                                            //alert(str);
+                                            JIP_SetVar(addr, event.data.mib, event.data.variable, event.data.varInput.value, vVarUpdated, str)
+                                        }
+                            );
+                            
+                            JIP_GetVar(Network.Nodes[node].IPv6Address, Network.Nodes[node].MiBs[mib].Name, Network.Nodes[node].MiBs[mib].Vars[varidx].Name, vDisplayRWVar, varInput)
+
+                            var refreshBut = $("<input type='submit' value='Refresh' style='margin-left:5px;'>").appendTo($(rightdiv));
+                            $(refreshBut).bind('click', 
+                                        {
+                                            IPv6Address: Network.Nodes[node].IPv6Address, 
+                                            mib: Network.Nodes[node].MiBs[mib].Name,
+                                            variable: Network.Nodes[node].MiBs[mib].Vars[varidx].Name,
+                                            varInput: varInput
+                                        },
+                                        function(event) {
+                                            JIP_GetVar(event.data.IPv6Address, event.data.mib, event.data.variable, vDisplayRWVar, event.data.varInput);
+                                        }
+                            );
+                        }
+                        else
+                        {
+                            leftdiv.html("Reading var...");
+                            JIP_GetVar(Network.Nodes[node].IPv6Address, Network.Nodes[node].MiBs[mib].Name, Network.Nodes[node].MiBs[mib].Vars[varidx].Name, vDisplayVar, leftdiv);
+
+                            var refreshBut = $("<input type='submit' value='Refresh' style='margin-left:5px;'>").appendTo($(rightdiv));
+                            $(refreshBut).bind('click', 
+                                        {
+                                            IPv6Address: Network.Nodes[node].IPv6Address, 
+                                            mib: Network.Nodes[node].MiBs[mib].Name,
+                                            variable: Network.Nodes[node].MiBs[mib].Vars[varidx].Name,
+                                            displayDiv: leftdiv
+                                        },
+                                        function(event) {
+                                            JIP_GetVar(event.data.IPv6Address, event.data.mib, event.data.variable, vDisplayVar, event.data.displayDiv);
+                                        }
+                            );
+                        }
+
+                        
+                        $("#mib").append(vardiv);
+
+                        $("#mib").append("<hr/>");
+                    }
+                }
+            }
+        }
+    }
+    vDrawMenu("Mib", {IPv6Address:Parameters.IPv6Address, mib:Parameters.mib});
+}
+
+
+// Trigger state change to mib view
+function vDisplayMibEvent(event)
+{
+    History.pushState({state:"Mib", BR:ActiveBorderRouter, IPv6Address:event.data.IPv6Address, mib:event.data.mib}, 
+                        "Mib \"" + event.data.mib + "\" on node " + event.data.IPv6Address, 
+                        "?state=Mib&BR=" + event.data.BR + "&IPv6Address=" + event.data.IPv6Address + "&Mib=" + event.data.mib);
+}
+
+
+
+function vDisplayNode(IPv6Address)
+{
+    $("#node").empty().append("<H2>Node: " + IPv6Address + "</H2><HR/>");
+
+    for (var node in Network.Nodes)
+    {
+        if (Network.Nodes[node].IPv6Address == IPv6Address)
+        {
+            for (var mib in Network.Nodes[node].MiBs)
+            {
+                var mibid = 0xFFFFFFFF + Network.Nodes[node].MiBs[mib].ID + 1;
+                $("#node").append("<div class=\"MiB\"><span>MiB ID 0x" + mibid.toString(16).toUpperCase() + "</span>");
+                newnode = $(document.createElement("a"));
+                newnode.click({BR:ActiveBorderRouter, IPv6Address:IPv6Address, mib:Network.Nodes[node].MiBs[mib].Name}, vDisplayMibEvent);
+                newnode.html("<H2>" + Network.Nodes[node].MiBs[mib].Name + "</H2>");
+                $("#node").append(newnode);
+                $("#node").append("</div><hr/>");
+            }
+        }
+    }
+    vDrawMenu("Node", {IPv6Address:IPv6Address});
+}
+
+
+// Trigger state change to node view
+function vDisplayNodeEvent(event)
+{
+    History.pushState({state:"Node", BR:ActiveBorderRouter, IPv6Address:event.data.IPv6Address}, 
+                        "Node " + event.data.IPv6Address, 
+                        "?state=Node&BR=" + event.data.BR + "&IPv6Address=" + event.data.IPv6Address);
+}
+
+
+function vDisplayNetworkNodeName(Status, element, name)
+{
+    if (Status.Value == 0)
+    {
+        if (name != "")
+        {
+            // Make sure the node has a valid name string
+            element.html("<H2>" + name + "</H2>");
+        }
+    }
+    else
+    {
+        $("#result").html("Failed to read name of node");
+    }
+}
+
+
+function vDisplayNetwork(Status)
+{
+    $("#network").empty().append("<H2>Network Contents</H2><HR/>");
+ 
+    if (Status.Value == 0)
+    {
+        for (var nodeidx in Network.Nodes)
+        {
+            newnode = $(document.createElement("a"));
+            newnode.click({BR:ActiveBorderRouter, IPv6Address:Network.Nodes[nodeidx].IPv6Address}, vDisplayNodeEvent);
+            newnode.html("<H2>" + Network.Nodes[nodeidx].IPv6Address + "</H2>");
+            $("#network").append(newnode);
+            $("#network").append("<br/>");
+
+            JIP_GetVar(Network.Nodes[nodeidx].IPv6Address, "Node", "DescriptiveName", vDisplayNetworkNodeName, newnode) 
+        }
+    }
+    else
+    {
+        newnode = $(document.createElement("div"));
+        newnode.html("Failed to discover network: " + Status.Description);
+        $("#network").append(newnode);
+    }
+    vDrawMenu("Network", undefined);
+}
+
+
+// Trigger state change to network view
+function vDisplayNetworkEvent(event)
+{
+    ActiveBorderRouter = event.data.BR;
+    History.pushState({state:"Network", BR:ActiveBorderRouter}, 
+                      "Network", 
+                      "?state=Network&BR=" + event.data.BR);
+}
+
+
+function vDisplayBRs(Status)
+{
+    $("#BRList").empty().append("<H2>Available Border Routers</H2><HR/>");
+ 
+    if (Status.Value == 0)
+    {
+        for (var bridx in BRList)
+        {
+            newbr = $(document.createElement("a"));
+            newbr.click({BR:BRList[bridx]}, vDisplayNetworkEvent);//function() { JIP_Discover(vDisplayNetwork, BRList[bridx])});
+            newbr.html("<H2>" + BRList[bridx] + "</H2>");
+            $("#BRList").append(newbr);
+            $("#BRList").append("<br/>");
+        }
+    }
+    else
+    {
+        newbr = $(document.createElement("div"));
+        newbr.html("Failed to discover Border Router addresses: " + Status.Description);
+        $("#BRList").append(newbr);
+    }
+    vDrawMenu("BRList", undefined);
+}
+
+
+
+
+
+function vDrawMenu(state, data)
+{
+    // Scroll the container and remove elements from the bits we can't see so that the scroll container resizes.
+    if (state == "BRList")
+    {
+        $(".scroll_container").animate({"left": -($("#BRList").position().left)}, 400);
+        $("#network").empty().append("<H2>Network Contents</H2><HR/>");
+        $("#node").empty().append("<H2>Node</H2><HR/>");
+        $("#mib").empty().append("<H2>Mib</H2><HR/>");
+    }
+    else if (state == "Network")
+    {
+        $(".scroll_container").animate({"left": -($("#network").position().left)}, 400);
+        $("#BRList").empty().append("<H2>Available Border Routers</H2><HR/>");
+        $("#node").empty().append("<H2>Node</H2><HR/>");
+        $("#mib").empty().append("<H2>Mib</H2><HR/>");
+    }
+    else if (state == "Node")
+    {
+        $(".scroll_container").animate({"left": -($("#node").position().left)}, 400);
+        $("#BRList").empty().append("<H2>Available Border Routers</H2><HR/>");
+        $("#network").empty().append("<H2>Network Contents</H2><HR/>");
+        $("#mib").empty().append("<H2>Mib</H2><HR/>");
+    }
+    else if (state == "Mib")
+    {
+        $(".scroll_container").animate({"left": -($("#mib").position().left)}, 400);
+        $("#BRList").empty().append("<H2>Available Border Routers</H2><HR/>");
+        $("#network").empty().append("<H2>Network Contents</H2><HR/>");
+        $("#node").empty().append("<H2>Node</H2><HR/>");
+    }
+    
+    $("#result").empty();
+
+    $("#navigation ul").empty();
+
+    // Add Network link
+    var navbr = $(document.createElement("li"));
+    if (state == "BRList")
+    {
+        navbr.addClass("selected");
+    }
+    navbr.html("Border Routers");
+    navbr.click(function() 
+        { 
+            History.pushState({state:"BRList"}, "Available Border Routers", "?state=BRList");
+        }); 
+    $("#navigation ul").append(navbr);
+
+    if (state != "BRList")
+    {
+
+        // Add Network link
+        var navnet = $(document.createElement("li"));
+        if (state == "Network")
+        {
+            navnet.addClass("selected");
+        }
+        navnet.html("Network");
+        navnet.click(function() 
+            { 
+                History.pushState({state:"Network", BR:ActiveBorderRouter}, 
+                                  "Network", 
+                                  "?state=Network&BR=" + ActiveBorderRouter);
+            }); 
+        $("#navigation ul").append(navnet);
+
+        if ((state == "Node") || (state == "Mib"))
+        {
+            // Add Node link
+            var navnode = $(document.createElement("li"));
+            if (state == "Node")
+            {
+                navnode.addClass("selected");
+            }
+            navnode.html("Node " + data.IPv6Address);
+            navnode.click(function() 
+            {
+                History.pushState({state:"Node", BR:ActiveBorderRouter, IPv6Address:data.IPv6Address}, 
+                                  "Node " + data.IPv6Address, 
+                                  "?state=Node&BR=" + ActiveBorderRouter + "&IPv6Address=" + data.IPv6Address);
+            });
+            $("#navigation ul").append(navnode);
+        }
+
+        if (state == "Mib")
+        {
+            // Add Mib link
+            var navmib = $(document.createElement("li"));
+            if (state == "Mib")
+            {
+                navmib.addClass("selected");
+            }
+            navmib.html("Mib " + data.mib);
+            $("#navigation ul").append(navmib);
+        }
+    }
+}
+
+
+function vHandleState(){
+    var State = History.getState();
+
+    JIP_CancelPendingRequests();
+    
+    if (State.data.state == "BRList")
+    {
+        //alert("Display available border routers");
+        JIP_DiscoverBRs(vDisplayBRs);
+    }
+    else if (State.data.state == "Network")
+    {
+        //alert("Display network on border router " + State.data.BR);
+        JIP_Discover(vDisplayNetwork, State.data.BR);
+    }
+    else if (State.data.state == "Node")
+    {
+        //alert("Display node " + State.data.IPv6Address);
+        vDisplayNode(State.data.IPv6Address);
+    }
+    else if (State.data.state == "Mib")
+    {
+        //alert("Display mib " + State.data.mib);
+        vDisplayMib({IPv6Address:State.data.IPv6Address, mib:State.data.mib});
+    }
+}
+
+
+$(document).ready(function(){
+    // Prepare
+    var History = window.History;
+        State = History.getState(),
+        $log = $('#result');
+        
+    if ( !History.enabled ) {
+         // History.js is disabled for this browser.
+        return false;
+    }
+
+    // Bind to StateChange Event
+    History.Adapter.bind(window,'statechange',vHandleState);
+    
+    // If this is the first page, go to BRList state.
+    if (State.data.state == undefined)
+    {
+        History.pushState({state:"BRList"}, "Available Border Routers", "?state=BRList");
+        vHandleState();
+    }
+    else
+    {
+        // Need to re-discover the network after a refresh
+        if (State.data.BR != undefined)
+        {
+            if (State.data.state == "Network")
+            {
+                JIP_Discover(vDisplayNetwork, State.data.BR);
+            }
+            else
+            {
+                JIP_Discover(vHandleState, State.data.BR);
+            }
+        }
+        else
+        {
+            // Or display the list or BRs.
+            JIP_DiscoverBRs(vDisplayBRs);
+        }
+    }
+
+    JIP_GetVersion(function (Result) {
+        if (Result.Status.Value == 0)
+        {
+            $("#footerbar").replaceWith("<div id=\"footerbar\">JIP Browser version 1.4 using JIPcgi version " + Result.Version.JIPcgi + " libJIP version " + Result.Version.libJIP + "</div>");
+        }
+    });
+});
+
+
+</script>
+    
+</HEAD><body><div id="container" >
+<div id="header"><div style="float: left;"><H1>NXP JenNet-IP Browser</H1></div><div style="float: right;"><img src="/img/NXP_logo.gif"></div></div>
+<div id="navigation"><ul></ul></div>
+
+<div id="content">
+    <div class="scroll_container">
+        <div id="BRList" class="scroll">
+            <P style="margin-left: 10px; "><H2>Available Border Routers</H2></P><HR/>
+        </div>
+        <div id="network" class="scroll">
+            <P style="margin-left: 10px; "><H2>Network Contents</H2></P><HR/>
+        </div>
+        <div id="node" class="scroll">
+            <P style="margin-left: 10px; "><H2>Node</H2></P><HR/>
+        </div>
+        <div id="mib" class="scroll">
+            <P style="margin-left: 10px; "><H2>Mib</H2></P><HR/>
+        </div>
+    </div>
+</div>
+<div id="after"></div>
+</div>
+<div id="footer">
+<div id="result"></div>
+<div id="footerbar">JIP Browser version 1.4</div>
+</div></body></HTML>
